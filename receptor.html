@@ -3,54 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoreo - Dueño de Casa</title>
+    <title>Monitoreo - Navarro 2914</title>
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #1e1e24; color: white; }
-        #remoteVideo { width: 90%; max-width: 500px; height: auto; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background-color: #000; }
-        #status { font-size: 18px; margin-bottom: 20px; color: #4ade80; font-weight: bold; }
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --success-hover: #059669;
+        }
+
+        body {
+            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 450px;
+            background: var(--card-bg);
+            border-radius: 28px;
+            padding: 25px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin: 0 0 5px 0;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        #status {
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 16px;
+            border-radius: 30px;
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        #status.active {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
+        /* Estilo UX para el botón de Atender */
+        .btn-atender {
+            background-color: var(--success);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            cursor: pointer;
+            display: none; /* Se oculta por defecto y aparece solo al sonar */
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.4);
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .btn-atender:active {
+            transform: scale(0.98);
+            background-color: var(--success-hover);
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            padding-top: 133%; /* Proporción vertical 3:4 */
+            border-radius: 20px;
+            overflow: hidden;
+            background-color: #020617;
+            border: 1px solid #334155;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.6);
+        }
+
+        video {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+        }
+
+        .live-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #ef4444;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: none;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
 
-    <div id="status">Esperando llamada del portero...</div>
-    <!-- Acá vas a ver la cara de la persona que toca el timbre -->
-    <video id="remoteVideo" autoplay playsinline></video>
+    <div class="container">
+        <h2>Navarro 2914</h2>
+        <div class="subtitle">Monitoreo de Portería - Dto 2 y 3</div>
+        
+        <div id="status">⏳ Esperando llamada de la puerta...</div>
+        
+        <!-- BOTÓN DE ATENDER NUEVO (Ubicado estratégicamente) -->
+        <button id="btnAtender" class="btn-atender">📞 ATENDER TIMBRE</button>
+        
+        <div class="video-container">
+            <div id="liveBadge" class="live-badge">En Vivo</div>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+    </div>
 
     <script>
-        // Forzamos el ID fijo para que el portero sepa siempre a dónde apuntar
         const MI_CELULAR_ID = 'mi-celular-personal-12345';
-        
         const peer = new Peer(MI_CELULAR_ID);
         const remoteVideo = document.getElementById('remoteVideo');
         const statusDiv = document.getElementById('status');
+        const liveBadge = document.getElementById('liveBadge');
+        const btnAtender = document.getElementById('btnAtender');
 
-        peer.on('open', (id) => {
-            console.log('Tu celular está escuchando en el ID:', id);
-        });
+        peer.on('open', (id) => console.log('Escuchando en ID:', id));
 
-        // Evento que se dispara cuando entra una llamada del portero
-        peer.on('call', async (call) => {
-            statusDiv.innerText = "¡Están tocando el timbre! Conectando...";
+        // Cuando entra la llamada del portero
+        peer.on('call', (call) => {
+            statusDiv.innerText = "🔔 ¡Timbre sonando! Alguien está en la puerta.";
+            statusDiv.classList.add('active');
+            btnAtender.style.display = 'block'; // Hacemos visible el botón
 
-            try {
-                // Capturamos tu micrófono para que la persona en la puerta te escuche
-                // No pedimos video acá para no consumir ancho de banda de gusto, solo audio.
-                const miAudio = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-                
-                // Atendemos la llamada enviando nuestro audio de vuelta
-                call.answer(miAudio);
+            // Esperamos el clic en "Atender" para conectar los medios
+            btnAtender.addEventListener('click', async () => {
+                btnAtender.style.display = 'none'; // Escondemos el botón tras el clic
+                statusDiv.innerText = "Conectando audio y video...";
 
-                // Cuando nos llegue el video/audio de la puerta, lo incrustamos en la pantalla
-                call.on('stream', (streamPortero) => {
-                    statusDiv.innerText = "En vivo - Portería";
-                    remoteVideo.srcObject = streamPortero;
-                });
+                try {
+                    // Capturamos el micrófono del dueño de casa para responder
+                    const miAudio = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                    call.answer(miAudio);
 
-            } catch (err) {
-                console.error("No se pudo responder con audio: ", err);
-                statusDiv.innerText = "Error al conectar el micrófono.";
-            }
+                    // Cuando el flujo de video de la puerta responda, lo mostramos
+                    call.on('stream', (streamPortero) => {
+                        statusDiv.innerText = "🟢 Transmitiendo en vivo";
+                        liveBadge.style.display = 'block';
+                        remoteVideo.srcObject = streamPortero;
+                    });
+
+                } catch (err) {
+                    console.error("Error al acceder al micrófono:", err);
+                    statusDiv.innerText = "❌ Error al activar micrófono. Revisá los permisos.";
+                    statusDiv.classList.remove('active');
+                }
+            });
         });
     </script>
 </body>
