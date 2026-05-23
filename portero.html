@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portero Inteligente - Navarro 2914</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #38bdf8;
+            --primary-hover: #0ea5e9;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            font-family: '-apple-system', BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 30px 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .header-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 0 5px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .address {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Botón de Timbre UX optimizado */
+        .btn-timbre {
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.5), 0 8px 16px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+            margin-bottom: 25px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+        }
+
+        /* Estilo para la campanita más grande y en su propia línea */
+        .btn-timbre .icono-campana {
+            font-size: 32px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .btn-timbre:active {
+            transform: scale(0.95);
+        }
+
+        .btn-timbre.calling {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+            70% { transform: scale(1.03); box-shadow: 0 0 0 20px rgba(56, 189, 248, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+        }
+
+        #status {
+            font-size: 15px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            min-height: 22px;
+        }
+
+        /* CORRECCIÓN: Usamos 75% para que tenga la proporción perfecta de cámara */
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 75%; 
+            border-radius: 16px;
+            overflow: hidden;
+            background-color: #020617;
+            border: 1px solid #334155;
+        }
+
+        video {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header-icon">🏠</div>
+        <h1>Navarro 2914</h1>
+        <div class="address">Dto 2 & Dto 3</div>
+
+        <button id="btnTimbre" class="btn-timbre">
+            <span class="icono-campana">🔔</span>
+            <span>TOCAR<br>TIMBRE</span>
+        </button>
+        
+        <div id="status">Listo para llamar...</div>
+        
+        <div class="video-wrapper">
+            <video id="localVideo" autoplay playsinline muted></video>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN DE TELEGRAM Y PEERJS
+        const TELEGRAM_TOKEN = '8837913990:AAFOC3XycnBIraJPdVStXOa81ZWNsXv4Dxw';
+        const TELEGRAM_CHAT_ID = '586917170';
+        const URL_RECEPTOR = 'https://tusitio.netlify.app/receptor.html'; 
+        const MI_CELULAR_ID = 'mi-celular-personal-12345'; 
+
+        const peer = new Peer();
+        const btnTimbre = document.getElementById('btnTimbre');
+        const statusDiv = document.getElementById('status');
+        const localVideo = document.getElementById('localVideo');
+
+        peer.on('open', (id) => console.log('Portero ID:', id));
+
+        async function enviarAlertaTelegram() {
+            const mensaje = `🔔 *¡Están tocando el timbre!*\n📍 *Dirección:* Navarro 2914 (Dto 2/3)\n\n👉 Para atender en vivo hacé clic acá:\n${URL_RECEPTOR}`;
+            const urlApi = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+            
+            try {
+                await fetch(urlApi, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: mensaje, parse_mode: 'Markdown' })
+                });
+            } catch (error) { console.error("Error Telegram:", error); }
+        }
+
+        btnTimbre.addEventListener('click', async () => {
+            statusDiv.innerText = "Enviando notificación...";
+            btnTimbre.disabled = true;
+            btnTimbre.classList.add('calling');
+
+            enviarAlertaTelegram();
+
+            try {
+                statusDiv.innerText = "Llamando al dueño de casa...";
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" }, 
+                    audio: true 
+                });
+                
+                localVideo.srcObject = stream;
+                const call = peer.call(MI_CELULAR_ID, stream);
+
+                call.on('stream', (remoteStream) => {
+                    statusDiv.innerText = "🟢 En comunicación";
+                    let audioRemoto = document.createElement('audio');
+                    audioRemoto.srcObject = remoteStream;
+                    audioRemoto.autoplay = true;
+                    document.body.appendChild(audioRemoto);
+                });
+
+                call.on('close', () => {
+                    statusDiv.innerText = "Llamada finalizada.";
+                    btnTimbre.disabled = false;
+                    btnTimbre.classList.remove('calling');
+                    stream.getTracks().forEach(track => track.stop());
+                    localVideo.srcObject = null;
+                });
+
+            } catch (err) {
+                console.error(err);
+                statusDiv.innerText = "Error de conexión.";
+                btnTimbre.disabled = false;
+                btnTimbre.classList.remove('calling');
+            }
+        });
+    </script>
+</body>
+</html>

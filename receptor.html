@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoreo - Dueño de Casa</title>
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #1e1e24; color: white; }
+        #remoteVideo { width: 90%; max-width: 500px; height: auto; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background-color: #000; }
+        #status { font-size: 18px; margin-bottom: 20px; color: #4ade80; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div id="status">Esperando llamada del portero...</div>
+    <!-- Acá vas a ver la cara de la persona que toca el timbre -->
+    <video id="remoteVideo" autoplay playsinline></video>
+
+    <script>
+        // Forzamos el ID fijo para que el portero sepa siempre a dónde apuntar
+        const MI_CELULAR_ID = 'mi-celular-personal-12345';
+        
+        const peer = new Peer(MI_CELULAR_ID);
+        const remoteVideo = document.getElementById('remoteVideo');
+        const statusDiv = document.getElementById('status');
+
+        peer.on('open', (id) => {
+            console.log('Tu celular está escuchando en el ID:', id);
+        });
+
+        // Evento que se dispara cuando entra una llamada del portero
+        peer.on('call', async (call) => {
+            statusDiv.innerText = "¡Están tocando el timbre! Conectando...";
+
+            try {
+                // Capturamos tu micrófono para que la persona en la puerta te escuche
+                // No pedimos video acá para no consumir ancho de banda de gusto, solo audio.
+                const miAudio = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+                
+                // Atendemos la llamada enviando nuestro audio de vuelta
+                call.answer(miAudio);
+
+                // Cuando nos llegue el video/audio de la puerta, lo incrustamos en la pantalla
+                call.on('stream', (streamPortero) => {
+                    statusDiv.innerText = "En vivo - Portería";
+                    remoteVideo.srcObject = streamPortero;
+                });
+
+            } catch (err) {
+                console.error("No se pudo responder con audio: ", err);
+                statusDiv.innerText = "Error al conectar el micrófono.";
+            }
+        });
+    </script>
+</body>
+</html>
